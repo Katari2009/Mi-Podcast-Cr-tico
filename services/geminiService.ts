@@ -1,11 +1,8 @@
 import { GoogleGenAI } from "@google/genai";
 
-export const generateScript = async (topic: string, keyPoints: string, apiKey: string): Promise<string> => {
-  if (!apiKey) {
-    throw new Error("La clave de API de Gemini no ha sido proporcionada.");
-  }
-
-  const ai = new GoogleGenAI({ apiKey });
+export const generateScript = async (topic: string, keyPoints: string): Promise<string> => {
+  // API key is now expected to be in the environment variables
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
   const prompt = `
     Eres un guionista experto para podcasts de análisis crítico dirigidos a estudiantes.
@@ -38,9 +35,7 @@ export const generateScript = async (topic: string, keyPoints: string, apiKey: s
     return response.text;
   } catch (error) {
     console.error("Error generating script with Gemini API:", error);
-    if (error instanceof Error && error.message.includes('API key not valid')) {
-       throw new Error("La clave de API proporcionada no es válida. Por favor, verifica e inténtalo de nuevo.");
-    }
+    // Provide a more generic error message as we assume the key is valid.
     throw new Error("Ocurrió un error al comunicarse con la IA. Inténtalo más tarde.");
   }
 };
