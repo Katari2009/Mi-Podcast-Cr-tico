@@ -1,9 +1,10 @@
+
 import { GoogleGenAI } from "@google/genai";
 
 export const generateScript = async (topic: string, keyPoints: string): Promise<string> => {
   try {
-    // FIX: Per Gemini API guidelines, initialize the client directly with `process.env.API_KEY`.
-    // This also resolves the "Property 'env' does not exist on type 'ImportMeta'" TypeScript error.
+    // FIX: The API key must be obtained exclusively from process.env.API_KEY as per the coding guidelines.
+    // This also resolves the TypeScript error "Property 'env' does not exist on type 'ImportMeta'".
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
     const prompt = `
@@ -36,12 +37,11 @@ export const generateScript = async (topic: string, keyPoints: string): Promise<
     return response.text;
   } catch (error: any) {
     console.error("Error in generateScript:", error);
-    // FIX: Updated the error condition to catch generic API key errors from the SDK.
+    // FIX: Updated error handling to align with the change to process.env.API_KEY and provide a more helpful message.
     if (error.message?.includes('API key') || error.message?.includes('API Key')) {
-        // FIX: The user-facing error message is updated to refer to the correct environment variable 'API_KEY'.
-        throw new Error("La clave de API de Gemini no está configurada. Por favor, asegúrate de que la variable de entorno API_KEY esté disponible para la aplicación.");
+        throw new Error("The Gemini API key is not configured correctly or is invalid. Please check your 'API_KEY' environment variable.");
     }
-    // Generic error for other cases
+    // Error genérico para otros casos
     throw new Error("Ocurrió un error al comunicarse con la IA. Inténtalo más tarde.");
   }
 };
