@@ -1,0 +1,7 @@
+{
+  "name": "Mi Podcast Crítico",
+  "description": "Una aplicación web para guiar a los estudiantes en la creación de un podcast de análisis crítico, desde la conceptualización del tema hasta la grabación final. La aplicación guarda el progreso localmente y utiliza IA para ayudar en la creación de guiones.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
