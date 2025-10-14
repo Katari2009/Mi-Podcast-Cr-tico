@@ -1,27 +1,12 @@
 import { GoogleGenAI } from "@google/genai";
 
-// Lazily initialize 'ai' to prevent the app from crashing on load if the API key is missing.
-// The check will be performed when the AI functionality is actually used.
-let ai: GoogleGenAI | null = null;
+export const generateScript = async (topic: string, keyPoints: string, apiKey: string): Promise<string> => {
+  if (!apiKey) {
+    throw new Error("La clave de API de Gemini no ha sido proporcionada.");
+  }
 
-export const isApiKeyAvailable = (): boolean => {
-    const apiKey = process.env.API_KEY;
-    return !!apiKey;
-};
+  const ai = new GoogleGenAI({ apiKey });
 
-const getAiInstance = () => {
-    if (!ai) {
-        const apiKey = process.env.API_KEY;
-        if (!apiKey) {
-            // This specific error message will be displayed in the UI, guiding the user.
-            throw new Error("La clave de API (API_KEY) no está configurada en el entorno de despliegue.");
-        }
-        ai = new GoogleGenAI({ apiKey });
-    }
-    return ai;
-};
-
-export const generateScript = async (topic: string, keyPoints: string): Promise<string> => {
   const prompt = `
     Eres un guionista experto para podcasts de análisis crítico dirigidos a estudiantes.
     Tu tarea es crear un guion atractivo y bien estructurado para un episodio de podcast.
@@ -42,8 +27,7 @@ export const generateScript = async (topic: string, keyPoints: string): Promise<
   `;
 
   try {
-    const gemini = getAiInstance(); // This will throw if API_KEY is missing
-    const response = await gemini.models.generateContent({
+    const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: prompt,
       config: {
@@ -54,8 +38,9 @@ export const generateScript = async (topic: string, keyPoints: string): Promise<
     return response.text;
   } catch (error) {
     console.error("Error generating script with Gemini API:", error);
-    // Re-throw the original error to be handled by the UI component's catch block.
-    // This preserves specific error messages (like the missing API key).
-    throw error;
+    if (error instanceof Error && error.message.includes('API key not valid')) {
+       throw new Error("La clave de API proporcionada no es válida. Por favor, verifica e inténtalo de nuevo.");
+    }
+    throw new Error("Ocurrió un error al comunicarse con la IA. Inténtalo más tarde.");
   }
 };

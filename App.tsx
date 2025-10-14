@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import useLocalStorage from './hooks/useLocalStorage';
 import { AppStep, PodcastData } from './types';
-import { generateScript, isApiKeyAvailable } from './services/geminiService';
+import { generateScript } from './services/geminiService';
 
 // --- HELPER & UI COMPONENTS (defined in the same file to reduce file count) ---
 
@@ -127,23 +127,69 @@ const TopicStep: React.FC<Omit<StepProps, 'onBack'>> = ({ data, setData, onNext 
     );
 };
 
+const ApiKeyInput: React.FC<{ onSave: (key: string) => void }> = ({ onSave }) => {
+    const [key, setKey] = useState('');
+    return (
+        <div className="bg-bg border border-accent/20 rounded-lg p-6 mt-4 text-center">
+            <h3 className="font-bold text-lg text-accent mb-2">Se necesita una Clave de API de Gemini</h3>
+            <p className="text-muted text-sm mb-4">
+                Para usar la generación con IA, por favor introduce tu clave de API de Google Gemini. Tu clave se guardará temporalmente solo en tu navegador.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-2">
+                <input
+                    type="password"
+                    value={key}
+                    onChange={(e) => setKey(e.target.value)}
+                    placeholder="Introduce tu API Key aquí"
+                    className="flex-grow bg-card border border-border-light rounded-lg px-4 py-2 text-ink placeholder-muted/50 focus:outline-none focus:ring-2 focus:ring-accent"
+                />
+                <Button onClick={() => onSave(key)} disabled={key.trim().length === 0}>
+                    Guardar y Generar
+                </Button>
+            </div>
+             <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-xs text-muted hover:text-accent mt-3 inline-block">
+                ¿No tienes una clave? Consíguela aquí &rarr;
+            </a>
+        </div>
+    );
+};
+
 const ScriptStep: React.FC<StepProps> = ({ data, setData, onNext, onBack }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [apiKeyIsSet] = useState(isApiKeyAvailable());
+    const [apiKey, setApiKey] = useState(() => sessionStorage.getItem('gemini-api-key') || '');
+    const [showApiKeyInput, setShowApiKeyInput] = useState(false);
 
-    const handleGenerateScript = async () => {
-        if (!apiKeyIsSet) return;
+    const handleGenerateScript = async (key: string) => {
         setIsLoading(true);
         setError(null);
+        setShowApiKeyInput(false);
         try {
-            const script = await generateScript(data.topic, data.keyPoints);
+            const script = await generateScript(data.topic, data.keyPoints, key);
             setData(prev => ({ ...prev, script }));
         } catch (e: any) {
             setError(e.message || "Ocurrió un error inesperado.");
+            // If there was an error, likely the key is bad, so we ask for it again.
+            setApiKey(''); 
+            sessionStorage.removeItem('gemini-api-key');
+            setShowApiKeyInput(true);
         } finally {
             setIsLoading(false);
         }
+    };
+
+    const handleInitialClick = () => {
+        if (apiKey) {
+            handleGenerateScript(apiKey);
+        } else {
+            setShowApiKeyInput(true);
+        }
+    };
+
+    const handleSaveKey = (key: string) => {
+        setApiKey(key);
+        sessionStorage.setItem('gemini-api-key', key);
+        handleGenerateScript(key);
     };
     
     return (
@@ -157,17 +203,13 @@ const ScriptStep: React.FC<StepProps> = ({ data, setData, onNext, onBack }) => {
                 <>
                     <div className="space-y-4">
                        <div className="flex flex-col items-center text-center mb-6">
-                            <Button onClick={handleGenerateScript} disabled={isLoading || !apiKeyIsSet}>
+                            <Button onClick={handleInitialClick} disabled={isLoading}>
                                 <div className="flex items-center gap-2">
                                     <SparklesIcon />
                                     {data.script ? 'Generar de Nuevo con IA' : 'Generar Guion con IA'}
                                 </div>
                             </Button>
-                             {!apiKeyIsSet && (
-                                <p className="text-muted text-sm mt-3 max-w-sm">
-                                    La generación con IA no está disponible. La clave de API de Gemini (API_KEY) no se ha configurado en el entorno de esta aplicación.
-                                </p>
-                            )}
+                            {showApiKeyInput && <ApiKeyInput onSave={handleSaveKey} />}
                         </div>
                         {error && <p className="text-danger text-center mb-4">{error}</p>}
                         <div>
