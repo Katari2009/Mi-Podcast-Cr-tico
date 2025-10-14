@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import useLocalStorage from './hooks/useLocalStorage';
 import { AppStep, PodcastData } from './types';
-import { generateScript } from './services/geminiService';
+import { generateScript, isApiKeyAvailable } from './services/geminiService';
 
 // --- HELPER & UI COMPONENTS (defined in the same file to reduce file count) ---
 
@@ -130,8 +130,10 @@ const TopicStep: React.FC<Omit<StepProps, 'onBack'>> = ({ data, setData, onNext 
 const ScriptStep: React.FC<StepProps> = ({ data, setData, onNext, onBack }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [apiKeyIsSet] = useState(isApiKeyAvailable());
 
     const handleGenerateScript = async () => {
+        if (!apiKeyIsSet) return;
         setIsLoading(true);
         setError(null);
         try {
@@ -154,13 +156,18 @@ const ScriptStep: React.FC<StepProps> = ({ data, setData, onNext, onBack }) => {
             ) : (
                 <>
                     <div className="space-y-4">
-                       <div className="flex justify-center mb-6">
-                            <Button onClick={handleGenerateScript} disabled={isLoading}>
+                       <div className="flex flex-col items-center text-center mb-6">
+                            <Button onClick={handleGenerateScript} disabled={isLoading || !apiKeyIsSet}>
                                 <div className="flex items-center gap-2">
                                     <SparklesIcon />
                                     {data.script ? 'Generar de Nuevo con IA' : 'Generar Guion con IA'}
                                 </div>
                             </Button>
+                             {!apiKeyIsSet && (
+                                <p className="text-muted text-sm mt-3 max-w-sm">
+                                    La generación con IA no está disponible. La clave de API de Gemini (API_KEY) no se ha configurado en el entorno de esta aplicación.
+                                </p>
+                            )}
                         </div>
                         {error && <p className="text-danger text-center mb-4">{error}</p>}
                         <div>

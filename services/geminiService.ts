@@ -4,6 +4,11 @@ import { GoogleGenAI } from "@google/genai";
 // The check will be performed when the AI functionality is actually used.
 let ai: GoogleGenAI | null = null;
 
+export const isApiKeyAvailable = (): boolean => {
+    const apiKey = process.env.API_KEY;
+    return !!apiKey;
+};
+
 const getAiInstance = () => {
     if (!ai) {
         const apiKey = process.env.API_KEY;
