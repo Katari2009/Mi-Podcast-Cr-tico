@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import useLocalStorage from './hooks/useLocalStorage';
-import { AppStep, PodcastData } from './types';
+import { AppStep, PodcastData, BadgeType } from './types';
 import { generateScript } from './services/geminiService';
 
 // --- HELPER & UI COMPONENTS (defined in the same file to reduce file count) ---
@@ -33,26 +33,83 @@ const Loader: React.FC<{ text: string }> = ({ text }) => (
 );
 
 // --- ICONS ---
+// FIX: Updated IconWrapper to safely handle an undefined className.
 const IconWrapper: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={`w-6 h-6 ${className}`}>{children}</svg>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={`w-8 h-8 ${className || ''}`}>{children}</svg>
 );
-const SparklesIcon = () => <IconWrapper><path fillRule="evenodd" d="M9.315 7.584C12.195 3.883 16.695 1.5 21.75 1.5a.75.75 0 0 1 .75.75c0 5.056-2.383 9.555-6.084 12.436A6.75 6.75 0 0 1 9.75 22.5a.75.75 0 0 1-.75-.75v-4.131A15.838 15.838 0 0 1 6.382 15H2.25a.75.75 0 0 1-.75-.75 6.75 6.75 0 0 1 7.815-6.666ZM15 6.75a2.25 2.25 0 1 0 0 4.5 2.25 2.25 0 0 0 0-4.5Z" clipRule="evenodd" /><path d="M5.26 17.242a.75.75 0 1 0-.897-1.203 5.243 5.243 0 0 0-2.05 5.022.75.75 0 0 0 .625.627 5.243 5.243 0 0 0 5.022-2.051.75.75 0 1 0-1.202-.897 3.744 3.744 0 0 1-3.006 1.511 3.744 3.744 0 0 1-1.51-3.006Z" /></IconWrapper>;
-const MicIcon = () => <IconWrapper><path d="M12 18.75a6 6 0 0 0 6-6v-1.5a6 6 0 0 0-12 0v1.5a6 6 0 0 0 6 6ZM10.5 4.875c0-1.036.84-1.875 1.875-1.875h.375c1.036 0 1.875.84 1.875 1.875v4.5c0 1.036-.84 1.875-1.875-1.875h-.375C11.34 11.25 10.5 10.41 10.5 9.375v-4.5Z" /><path d="M8.25 12a.75.75 0 0 0 0 1.5h7.5a.75.75 0 0 0 0-1.5h-7.5Z" /></IconWrapper>;
-const StopIcon = () => <IconWrapper><path fillRule="evenodd" d="M4.5 7.5a3 3 0 0 1 3-3h9a3 3 0 0 1 3 3v9a3 3 0 0 1-3-3h-9a3 3 0 0 1-3-3v-9Z" clipRule="evenodd" /></IconWrapper>;
-const PlayIcon = () => <IconWrapper><path fillRule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.647c1.295.742 1.295 2.545 0 3.286L7.279 20.99c-1.25.72-2.779-.217-2.779-1.643V5.653Z" clipRule="evenodd" /></IconWrapper>;
-const DownloadIcon = () => <IconWrapper><path fillRule="evenodd" d="M12 2.25a.75.75 0 0 1 .75.75v11.69l3.22-3.22a.75.75 0 1 1 1.06 1.06l-4.5 4.5a.75.75 0 0 1-1.06 0l-4.5-4.5a.75.75 0 1 1 1.06-1.06l3.22 3.22V3a.75.75 0 0 1 .75-.75Zm-9 13.5a.75.75 0 0 1 .75.75v2.25a1.5 1.5 0 0 0 1.5 1.5h10.5a1.5 1.5 0 0 0 1.5-1.5V16.5a.75.75 0 0 1 1.5 0v2.25a3 3 0 0 1-3 3H5.25a3 3 0 0 1-3-3V16.5a.75.75 0 0 1 .75-.75Z" clipRule="evenodd" /></IconWrapper>;
-const RestartIcon = () => <IconWrapper><path fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25Zm-1.823 8.342a.75.75 0 0 1 1.06 0l2.5 2.5a.75.75 0 0 1 0 1.06l-2.5 2.5a.75.75 0 1 1-1.06-1.06L11.94 13.5l-1.762-1.763a.75.75 0 0 1 0-1.061Z" clipRule="evenodd" /></IconWrapper>;
+
+// FIX: Updated all icon components to accept a `className` prop to resolve type errors.
+interface IconProps {
+    className?: string;
+}
+
+const SparklesIcon: React.FC<IconProps> = ({ className }) => <IconWrapper className={`w-6 h-6 ${className || ''}`}><path fillRule="evenodd" d="M9.315 7.584C12.195 3.883 16.695 1.5 21.75 1.5a.75.75 0 0 1 .75.75c0 5.056-2.383 9.555-6.084 12.436A6.75 6.75 0 0 1 9.75 22.5a.75.75 0 0 1-.75-.75v-4.131A15.838 15.838 0 0 1 6.382 15H2.25a.75.75 0 0 1-.75-.75 6.75 6.75 0 0 1 7.815-6.666ZM15 6.75a2.25 2.25 0 1 0 0 4.5 2.25 2.25 0 0 0 0-4.5Z" clipRule="evenodd" /><path d="M5.26 17.242a.75.75 0 1 0-.897-1.203 5.243 5.243 0 0 0-2.05 5.022.75.75 0 0 0 .625.627 5.243 5.243 0 0 0 5.022-2.051.75.75 0 1 0-1.202-.897 3.744 3.744 0 0 1-3.006 1.511 3.744 3.744 0 0 1-1.51-3.006Z" /></IconWrapper>;
+const MicIcon: React.FC<IconProps> = ({ className }) => <IconWrapper className={`w-6 h-6 ${className || ''}`}><path d="M12 18.75a6 6 0 0 0 6-6v-1.5a6 6 0 0 0-12 0v1.5a6 6 0 0 0 6 6ZM10.5 4.875c0-1.036.84-1.875 1.875-1.875h.375c1.036 0 1.875.84 1.875 1.875v4.5c0 1.036-.84 1.875-1.875-1.875h-.375C11.34 11.25 10.5 10.41 10.5 9.375v-4.5Z" /><path d="M8.25 12a.75.75 0 0 0 0 1.5h7.5a.75.75 0 0 0 0-1.5h-7.5Z" /></IconWrapper>;
+const StopIcon: React.FC<IconProps> = ({ className }) => <IconWrapper className={`w-6 h-6 ${className || ''}`}><path fillRule="evenodd" d="M4.5 7.5a3 3 0 0 1 3-3h9a3 3 0 0 1 3 3v9a3 3 0 0 1-3-3h-9a3 3 0 0 1-3-3v-9Z" clipRule="evenodd" /></IconWrapper>;
+const PlayIcon: React.FC<IconProps> = ({ className }) => <IconWrapper className={`w-6 h-6 ${className || ''}`}><path fillRule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.647c1.295.742 1.295 2.545 0 3.286L7.279 20.99c-1.25.72-2.779-.217-2.779-1.643V5.653Z" clipRule="evenodd" /></IconWrapper>;
+const DownloadIcon: React.FC<IconProps> = ({ className }) => <IconWrapper className={`w-6 h-6 ${className || ''}`}><path fillRule="evenodd" d="M12 2.25a.75.75 0 0 1 .75.75v11.69l3.22-3.22a.75.75 0 1 1 1.06 1.06l-4.5 4.5a.75.75 0 0 1-1.06 0l-4.5-4.5a.75.75 0 1 1 1.06-1.06l3.22 3.22V3a.75.75 0 0 1 .75-.75Zm-9 13.5a.75.75 0 0 1 .75.75v2.25a1.5 1.5 0 0 0 1.5 1.5h10.5a1.5 1.5 0 0 0 1.5-1.5V16.5a.75.75 0 0 1 1.5 0v2.25a3 3 0 0 1-3 3H5.25a3 3 0 0 1-3-3V16.5a.75.75 0 0 1 .75-.75Z" clipRule="evenodd" /></IconWrapper>;
+const RestartIcon: React.FC<IconProps> = ({ className }) => <IconWrapper className={`w-6 h-6 ${className || ''}`}><path fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25Zm-1.823 8.342a.75.75 0 0 1 1.06 0l2.5 2.5a.75.75 0 0 1 0 1.06l-2.5 2.5a.75.75 0 1 1-1.06-1.06L11.94 13.5l-1.762-1.763a.75.75 0 0 1 0-1.061Z" clipRule="evenodd" /></IconWrapper>;
+const FirstRecordingIcon: React.FC<IconProps> = ({ className }) => <IconWrapper className={className}><path fillRule="evenodd" d="M11.25 4.5A5.25 5.25 0 0 0 6 9.75v.75a.75.75 0 0 0 1.5 0v-.75a3.75 3.75 0 1 1 7.5 0v.75a.75.75 0 0 0 1.5 0v-.75A5.25 5.25 0 0 0 11.25 4.5Z" clipRule="evenodd" /><path fillRule="evenodd" d="M6.161 16.11a.75.75 0 0 1 .53 1.28A7.47 7.47 0 0 0 11.25 18a7.47 7.47 0 0 0 4.56-1.61.75.75 0 1 1 1.06-1.06A8.97 8.97 0 0 1 11.25 19.5a8.97 8.97 0 0 1-5.62-2.071.75.75 0 0 1 .53-1.319Z" clipRule="evenodd" /><path d="M11.25 12.75a.75.75 0 0 0-1.5 0v2.25a.75.75 0 0 0 1.5 0v-2.25Z" /></IconWrapper>;
+const ScriptEditIcon: React.FC<IconProps> = ({ className }) => <IconWrapper className={className}><path fillRule="evenodd" d="M16.28 11.47a.75.75 0 0 1 0 1.06l-7.5 7.5a.75.75 0 0 1-1.06 0l-3.75-3.75a.75.75 0 1 1 1.06-1.06l3.22 3.22 6.97-6.97a.75.75 0 0 1 1.06 0ZM15 3a.75.75 0 0 1 .75.75V6h1.5a.75.75 0 0 1 0 1.5H15v1.5a.75.75 0 0 1-1.5 0V7.5H12a.75.75 0 0 1 0-1.5h1.5V3.75A.75.75 0 0 1 15 3Z" clipRule="evenodd" /><path d="M3 5.25a2.25 2.25 0 0 1 2.25-2.25h6.75A.75.75 0 0 1 12.75 3V5.25h-1.5V3.75a.75.75 0 0 0-.75-.75H5.25a.75.75 0 0 0-.75.75v13.5a.75.75 0 0 0 .75.75h3a.75.75 0 0 1 0 1.5h-3A2.25 2.25 0 0 1 3 18.75V5.25Z" /></IconWrapper>;
+const PublishIcon: React.FC<IconProps> = ({ className }) => <IconWrapper className={className}><path d="M15.75 2.25A2.25 2.25 0 0 0 13.5 4.5v1.875c0 1.036.84 1.875 1.875 1.875h1.875a1.875 1.875 0 0 0 1.875-1.875V4.5A2.25 2.25 0 0 0 17.25 2.25h-1.5Zm-5.625 4.5c.334 0 .66.023.984.067.734.103 1.396.42 1.933.957.537.537.854 1.2.957 1.933.044.324.067.65.067.984s-.023.66-.067.984a3.375 3.375 0 0 1-.957 1.933c-.537.537-1.2.854-1.933.957-.324.044-.65.067-.984.067s-.66-.023-.984-.067a3.375 3.375 0 0 1-1.933-.957c-.537-.537-.854-1.2-.957-1.933-.044-.324-.067-.65-.067-.984s.023-.66.067-.984c.103-.734.42-1.396.957-1.933.537-.537 1.2-.854 1.933-.957.324-.044.65-.067.984-.067ZM7.5 15.75A2.25 2.25 0 0 0 5.25 18v.375c0 1.036.84 1.875 1.875 1.875h1.875A2.25 2.25 0 0 0 11.25 18v-.375a1.875 1.875 0 0 0-1.875-1.875H7.5Z" /><path fillRule="evenodd" d="M5.962 3.988a.75.75 0 0 1 1.06 0l6 6a.75.75 0 0 1-1.06 1.06l-6-6a.75.75 0 0 1 0-1.06ZM14.038 13.012a.75.75 0 0 1 1.06 0l6 6a.75.75 0 0 1-1.06 1.06l-6-6a.75.75 0 0 1 0-1.06Z" clipRule="evenodd" /></IconWrapper>;
+
+
+// --- BADGE COMPONENTS ---
+
+const badgeDetails = {
+    [BadgeType.FIRST_RECORDING]: { icon: <FirstRecordingIcon />, name: "Primer Podcast Grabado", description: "¡Has grabado tu primer audio! Este es un gran paso." },
+    [BadgeType.SCRIPT_EDITED]: { icon: <ScriptEditIcon />, name: "Guion Editado", description: "Personalizaste tu guion. ¡El toque de un autor!" },
+    [BadgeType.PODCAST_PUBLISHED]: { icon: <PublishIcon />, name: "Podcast Publicado", description: "Descargaste tu creación, ¡lista para compartirla con el mundo!" },
+};
+
+const BadgeDisplay: React.FC<{ earnedBadges: BadgeType[] }> = ({ earnedBadges }) => {
+    return (
+        <div className="mt-8 pt-6 border-t border-border-light w-full">
+            <h3 className="text-center text-muted font-semibold mb-4">Mis Logros</h3>
+            <div className="flex justify-center items-start gap-4 sm:gap-6">
+                {Object.values(BadgeType).map(badge => {
+                    const isEarned = earnedBadges.includes(badge);
+                    const details = badgeDetails[badge];
+                    return (
+                        <div key={badge} className="relative group flex flex-col items-center text-center w-24">
+                            <div className={`w-16 h-16 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${isEarned ? 'bg-accent/10 border-accent text-accent' : 'bg-card border-border-dark text-muted/50'}`}>
+                                {details.icon}
+                            </div>
+                            <span className={`mt-2 text-xs font-semibold transition-colors duration-300 ${isEarned ? 'text-ink' : 'text-muted'}`}>{details.name}</span>
+                            <div className="absolute bottom-full mb-2 w-48 p-2 bg-bg border border-border-light rounded-md shadow-lg text-xs text-muted text-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                                {details.description}
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+};
+
+const Toast: React.FC<{ badge: BadgeType | null }> = ({ badge }) => {
+    if (!badge) return null;
+    const details = badgeDetails[badge];
+    return (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 bg-card border-2 border-accent rounded-xl shadow-2xl shadow-black/50 p-4 animate-fade-in-up">
+            <div className="text-accent">{details.icon}</div>
+            <div>
+                <p className="font-bold text-ink">¡Logro Desbloqueado!</p>
+                <p className="text-sm text-muted">{details.name}</p>
+            </div>
+        </div>
+    );
+};
+
 
 // --- STEP COMPONENTS ---
 
-interface StepProps {
-    data: PodcastData;
-    setData: React.Dispatch<React.SetStateAction<PodcastData>>;
+interface IntroductionStepProps {
     onNext: () => void;
-    onBack?: () => void;
+    badges: BadgeType[];
 }
 
-const IntroductionStep: React.FC<{ onNext: () => void }> = ({ onNext }) => (
+const IntroductionStep: React.FC<IntroductionStepProps> = ({ onNext, badges }) => (
     <Card className="text-center flex flex-col items-center gap-6">
         <div className="bg-accent/10 border border-accent/20 rounded-full p-4 w-fit">
             <MicIcon/>
@@ -64,6 +121,7 @@ const IntroductionStep: React.FC<{ onNext: () => void }> = ({ onNext }) => (
         <Button onClick={onNext} className="mt-4">
             Comenzar a Crear
         </Button>
+        <BadgeDisplay earnedBadges={badges} />
     </Card>
 );
 
@@ -90,7 +148,13 @@ const StepIndicator: React.FC<{ currentStep: number }> = ({ currentStep }) => {
     );
 };
 
-const TopicStep: React.FC<Omit<StepProps, 'onBack'>> = ({ data, setData, onNext }) => {
+interface TopicStepProps {
+    data: PodcastData;
+    setData: React.Dispatch<React.SetStateAction<PodcastData>>;
+    onNext: () => void;
+}
+
+const TopicStep: React.FC<TopicStepProps> = ({ data, setData, onNext }) => {
     const canProceed = data.topic.trim().length > 5 && data.keyPoints.trim().length > 10;
     return (
         <Card>
@@ -127,9 +191,18 @@ const TopicStep: React.FC<Omit<StepProps, 'onBack'>> = ({ data, setData, onNext 
     );
 };
 
-const ScriptStep: React.FC<StepProps> = ({ data, setData, onNext, onBack }) => {
+interface ScriptStepProps {
+    data: PodcastData;
+    setData: React.Dispatch<React.SetStateAction<PodcastData>>;
+    onNext: () => void;
+    onBack: () => void;
+    awardBadge: (badge: BadgeType) => void;
+}
+
+const ScriptStep: React.FC<ScriptStepProps> = ({ data, setData, onNext, onBack, awardBadge }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [hasEdited, setHasEdited] = useState(false);
 
     const handleGenerateScript = async () => {
         setIsLoading(true);
@@ -168,7 +241,13 @@ const ScriptStep: React.FC<StepProps> = ({ data, setData, onNext, onBack }) => {
                             <textarea
                                 id="script"
                                 value={data.script}
-                                onChange={(e) => setData(prev => ({ ...prev, script: e.target.value }))}
+                                onChange={(e) => {
+                                    setData(prev => ({ ...prev, script: e.target.value }));
+                                    if (!hasEdited) {
+                                        setHasEdited(true);
+                                        awardBadge(BadgeType.SCRIPT_EDITED);
+                                    }
+                                }}
                                 rows={12}
                                 placeholder="Escribe tu guion aquí o genera uno con la IA."
                                 className="w-full bg-bg border border-border-light rounded-lg px-4 py-2 text-ink placeholder-muted/50 focus:outline-none focus:ring-2 focus:ring-accent"
@@ -185,18 +264,22 @@ const ScriptStep: React.FC<StepProps> = ({ data, setData, onNext, onBack }) => {
     );
 };
 
-interface RecordingStepProps extends StepProps {
+interface RecordingStepProps {
+    data: PodcastData;
+    setData: React.Dispatch<React.SetStateAction<PodcastData>>;
+    onNext: () => void;
+    onBack: () => void;
     recordingUrl: string | null;
     setRecordingUrl: (url: string | null) => void;
+    awardBadge: (badge: BadgeType) => void;
 }
 
-const RecordingStep: React.FC<RecordingStepProps> = ({ data, onNext, onBack, recordingUrl, setRecordingUrl }) => {
+const RecordingStep: React.FC<RecordingStepProps> = ({ data, onNext, onBack, recordingUrl, setRecordingUrl, awardBadge }) => {
     const [isRecording, setIsRecording] = useState(false);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const audioChunksRef = useRef<Blob[]>([]);
     
     useEffect(() => {
-        // Clean up object URL on component unmount to avoid memory leaks
         return () => {
             if (recordingUrl) {
                 URL.revokeObjectURL(recordingUrl);
@@ -219,6 +302,7 @@ const RecordingStep: React.FC<RecordingStepProps> = ({ data, onNext, onBack, rec
                 const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
                 const url = URL.createObjectURL(audioBlob);
                 setRecordingUrl(url);
+                awardBadge(BadgeType.FIRST_RECORDING);
                 setIsRecording(false);
                 stream.getTracks().forEach(track => track.stop());
             };
@@ -257,7 +341,7 @@ const RecordingStep: React.FC<RecordingStepProps> = ({ data, onNext, onBack, rec
                 <div className="flex flex-col items-center justify-center bg-bg border border-border-light rounded-lg p-4 space-y-6">
                     {!isRecording && !recordingUrl && (
                         <Button onClick={startRecording} className="flex items-center gap-2 text-lg">
-                            <MicIcon/> Iniciar Grabación
+                            <MicIcon className="w-6 h-6"/> Iniciar Grabación
                         </Button>
                     )}
                     {isRecording && (
@@ -266,7 +350,7 @@ const RecordingStep: React.FC<RecordingStepProps> = ({ data, onNext, onBack, rec
                             <div className="relative w-24 h-24 flex items-center justify-center">
                                 <div className="absolute inset-0 bg-danger/20 rounded-full animate-ping"></div>
                                 <div className="relative bg-danger w-16 h-16 rounded-full flex items-center justify-center text-white">
-                                    <MicIcon/>
+                                    <MicIcon className="w-6 h-6"/>
                                 </div>
                             </div>
                             <p className="text-danger font-semibold mt-4">Grabando...</p>
@@ -297,13 +381,15 @@ interface CompletionStepProps {
     data: PodcastData;
     recordingUrl: string | null;
     onRestart: () => void;
+    awardBadge: (badge: BadgeType) => void;
 }
 
 
-const CompletionStep: React.FC<CompletionStepProps> = ({ data, recordingUrl, onRestart }) => {
+const CompletionStep: React.FC<CompletionStepProps> = ({ data, recordingUrl, onRestart, awardBadge }) => {
     
     const downloadRecording = () => {
         if (!recordingUrl) return;
+        awardBadge(BadgeType.PODCAST_PUBLISHED);
         const link = document.createElement('a');
         link.href = recordingUrl;
         const fileName = data.topic.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'podcast';
@@ -340,6 +426,7 @@ const initialData: PodcastData = {
   topic: '',
   keyPoints: '',
   script: '',
+  badges: [],
 };
 
 const backgrounds: Record<AppStep, string> = {
@@ -355,6 +442,7 @@ const App: React.FC = () => {
     const [step, setStep] = useLocalStorage<AppStep>('podcast-step', AppStep.INTRODUCTION);
     const [podcastData, setPodcastData] = useLocalStorage<PodcastData>('podcast-data', initialData);
     const [recordingUrl, setRecordingUrl] = useState<string | null>(null);
+    const [newlyEarnedBadge, setNewlyEarnedBadge] = useState<BadgeType | null>(null);
 
     const initialBg = backgrounds[step] || backgrounds[AppStep.INTRODUCTION];
     const [bg1, setBg1] = useState({ url: initialBg, opacity: 1 });
@@ -368,14 +456,16 @@ const App: React.FC = () => {
             const rawData = window.localStorage.getItem('podcast-data');
             if (rawData) {
                 const parsedData = JSON.parse(rawData);
-                if (parsedData && typeof parsedData === 'object' && 'recordingBase64' in parsedData) {
-                    console.log("Old data structure detected. Cleaning localStorage to prevent GitHub sync issues.");
+                if (parsedData && typeof parsedData === 'object' && ('recordingBase64' in parsedData || !('badges' in parsedData))) {
+                    console.log("Old data structure detected. Cleaning localStorage.");
                     const cleanedData: PodcastData = {
                         topic: parsedData.topic || '',
                         keyPoints: parsedData.keyPoints || '',
                         script: parsedData.script || '',
+                        badges: parsedData.badges || [],
                     };
                     window.localStorage.setItem('podcast-data', JSON.stringify(cleanedData));
+                    setPodcastData(cleanedData);
                 }
             }
         } catch (error) {
@@ -400,10 +490,32 @@ const App: React.FC = () => {
         }
     }, [step, activeBg, bg1.url, bg2.url]);
 
+    useEffect(() => {
+        if (newlyEarnedBadge) {
+            const timer = setTimeout(() => {
+                setNewlyEarnedBadge(null);
+            }, 4000); 
+            return () => clearTimeout(timer);
+        }
+    }, [newlyEarnedBadge]);
+
+
+    const awardBadge = (badge: BadgeType) => {
+        setPodcastData(prev => {
+            if (prev.badges.includes(badge)) {
+                return prev;
+            }
+            setNewlyEarnedBadge(badge);
+            return { ...prev, badges: [...prev.badges, badge] };
+        });
+    };
 
     const restart = () => {
-        if (window.confirm("¿Estás seguro de que quieres empezar de nuevo? Se borrará todo tu progreso.")) {
-            setPodcastData(initialData);
+        if (window.confirm("¿Estás seguro de que quieres empezar de nuevo? Se borrará todo tu progreso, pero conservarás tus logros.")) {
+            setPodcastData(prev => ({
+                ...initialData,
+                badges: prev.badges,
+            }));
             setRecordingUrl(null);
             setStep(AppStep.INTRODUCTION);
         }
@@ -412,18 +524,18 @@ const App: React.FC = () => {
     const renderCurrentStep = () => {
         switch (step) {
             case AppStep.INTRODUCTION:
-                return <IntroductionStep onNext={() => setStep(AppStep.TOPIC)} />;
+                return <IntroductionStep onNext={() => setStep(AppStep.TOPIC)} badges={podcastData.badges} />;
             case AppStep.TOPIC:
                 return <TopicStep data={podcastData} setData={setPodcastData} onNext={() => setStep(AppStep.SCRIPT)} />;
             case AppStep.SCRIPT:
-                return <ScriptStep data={podcastData} setData={setPodcastData} onNext={() => setStep(AppStep.RECORDING)} onBack={() => setStep(AppStep.TOPIC)} />;
+                return <ScriptStep data={podcastData} setData={setPodcastData} onNext={() => setStep(AppStep.RECORDING)} onBack={() => setStep(AppStep.TOPIC)} awardBadge={awardBadge} />;
             case AppStep.RECORDING:
-                return <RecordingStep data={podcastData} setData={setPodcastData} onNext={() => setStep(AppStep.COMPLETED)} onBack={() => setStep(AppStep.SCRIPT)} recordingUrl={recordingUrl} setRecordingUrl={setRecordingUrl}/>;
+                return <RecordingStep data={podcastData} setData={setPodcastData} onNext={() => setStep(AppStep.COMPLETED)} onBack={() => setStep(AppStep.SCRIPT)} recordingUrl={recordingUrl} setRecordingUrl={setRecordingUrl} awardBadge={awardBadge}/>;
             case AppStep.COMPLETED:
-                return <CompletionStep data={podcastData} onRestart={restart} recordingUrl={recordingUrl} />;
+                return <CompletionStep data={podcastData} onRestart={restart} recordingUrl={recordingUrl} awardBadge={awardBadge}/>;
             default:
                 setStep(AppStep.INTRODUCTION); // Fallback to introduction
-                return <IntroductionStep onNext={() => setStep(AppStep.TOPIC)} />;
+                return <IntroductionStep onNext={() => setStep(AppStep.TOPIC)} badges={podcastData.badges} />;
         }
     };
     
@@ -441,10 +553,11 @@ const App: React.FC = () => {
         <>
             <div style={{...bgStyle, backgroundImage: `${gradient}, url(${bg1.url})`, opacity: bg1.opacity }} />
             <div style={{...bgStyle, backgroundImage: `${gradient}, url(${bg2.url})`, opacity: bg2.opacity }} />
+            <Toast badge={newlyEarnedBadge} />
             <div className="min-h-screen w-full flex flex-col items-center justify-center p-4 sm:p-8">
                 <header className="absolute top-6 text-center">
                     <h1 className="text-xl font-bold flex items-center gap-2">
-                        <span className="text-accent"><MicIcon/></span>
+                        <span className="text-accent"><MicIcon className="w-6 h-6"/></span>
                         Mi Podcast Crítico
                     </h1>
                 </header>
